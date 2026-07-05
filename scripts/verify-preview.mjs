@@ -150,6 +150,7 @@ async function verifyPreviewUi(testCases) {
   const lineNumberLayer = requiredElement(document, "line-number-layer");
   const sketchButton = requiredElement(document, "notation-sketch");
   const cleanButton = requiredElement(document, "notation-clean");
+  const exampleSelect = requiredElement(document, "example-source");
   requiredElement(document, "open-source");
   const saveButton = requiredElement(document, "save-source");
   const linkButton = requiredElement(document, "copy-link");
@@ -168,6 +169,7 @@ async function verifyPreviewUi(testCases) {
   const diagnostics = requiredElement(document, "diagnostics");
 
   await verifyInitialSource(window, sourceInput, previewOutput);
+  await verifyExampleSource(window, exampleSelect, sourceInput, previewOutput, mapStatus, sourceMeta);
   await verifySourceDownload(window, saveButton);
   await verifyKeyboardShortcuts(window, sourceInput);
   await verifyEditorLineNumbers(window, sourceInput, lineNumberLayer);
@@ -249,6 +251,37 @@ async function verifyInitialSource(window, sourceInput, previewOutput) {
   const svg = previewOutput.querySelector("svg");
   if (svg?.getAttribute("aria-label") !== "Wardley Map") {
     throw new Error("Initial custom preview did not render.");
+  }
+}
+
+async function verifyExampleSource(window, exampleSelect, sourceInput, previewOutput, mapStatus, sourceMeta) {
+  const option = Array.from(exampleSelect.options).find((candidate) => candidate.value === "codex-developer-non-developer-domain");
+  if (!option) {
+    throw new Error("Codex domain example is missing from the example selector.");
+  }
+  exampleSelect.value = option.value;
+  exampleSelect.dispatchEvent(new window.Event("change", { bubbles: true }));
+  await window.happyDOM.whenAsyncComplete();
+
+  if (!sourceInput.value.startsWith("title Codex Developer Non-Developer Domain Compact")) {
+    throw new Error("Codex domain example did not load into the source editor.");
+  }
+  if (mapStatus.textContent !== "25 components, 38 links, 3 PST") {
+    throw new Error(`Codex domain example rendered unexpected map status: "${mapStatus.textContent}".`);
+  }
+  if (sourceMeta.textContent !== sourceMetaLabel(sourceInput.value)) {
+    throw new Error("Codex domain example did not update source metadata.");
+  }
+  const svg = previewOutput.querySelector("svg");
+  if (svg?.getAttribute("aria-label") !== "Codex Developer Non-Developer Domain Compact") {
+    throw new Error("Codex domain example did not render the expected SVG.");
+  }
+
+  sourceInput.value = "title Edited Example\ncomponent User [0.9, 0.2]";
+  sourceInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await window.happyDOM.whenAsyncComplete();
+  if (exampleSelect.value !== "") {
+    throw new Error("Manual source edits should switch the example selector back to Custom map.");
   }
 }
 
@@ -530,8 +563,8 @@ Build->Runtime
   if (!build.classList.contains("wardley-focus-visible")) {
     throw new Error("Hover focus did not keep the downstream component visible.");
   }
-  if (!runtime.classList.contains("wardley-focus-visible")) {
-    throw new Error("Hover focus did not keep the full downstream path visible.");
+  if (runtime.classList.contains("wardley-focus-visible")) {
+    throw new Error("Hover focus should keep full downstream paths in the panel, not highlighted on the map.");
   }
   if (!link1.classList.contains("wardley-focus-visible")) {
     throw new Error("Hover focus did not keep the upstream path link visible.");
@@ -539,8 +572,8 @@ Build->Runtime
   if (!link2.classList.contains("wardley-focus-visible")) {
     throw new Error("Hover focus did not keep the hovered path link visible.");
   }
-  if (!link3.classList.contains("wardley-focus-visible")) {
-    throw new Error("Hover focus did not keep the downstream path link visible.");
+  if (link3.classList.contains("wardley-focus-visible")) {
+    throw new Error("Hover focus should not highlight non-adjacent downstream links.");
   }
   if (other.classList.contains("wardley-focus-visible")) {
     throw new Error("Hover focus should not keep unrelated components visible.");
@@ -574,6 +607,61 @@ Build->Runtime
   }
   if (focusPaths.hidden || !(focusPaths.textContent ?? "").includes("Direct link")) {
     throw new Error("Link hover did not show a direct link path panel.");
+  }
+
+  sourceInput.value = `title Role Focus
+anchor Developer [0.96, 0.16] label [-82, -12]
+anchor Non-Developer [0.96, 0.46] label [-124, -12]
+component Accepted Change [0.84, 0.30]
+component Shareable Work Outcome [0.70, 0.46]
+component Codex Work Domain [0.58, 0.48]
+component Verification Harness [0.22, 0.58]
+Developer->Accepted Change
+Accepted Change->Codex Work Domain
+Non-Developer->Shareable Work Outcome
+Shareable Work Outcome->Codex Work Domain
+Codex Work Domain->Verification Harness
+`;
+  sourceInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+  await window.happyDOM.whenAsyncComplete();
+
+  const roleSvg = previewOutput.querySelector("svg");
+  const developer = roleSvg?.querySelector('[data-wardley-component-id="developer"]');
+  const nonDeveloper = roleSvg?.querySelector('[data-wardley-component-id="non-developer"]');
+  const acceptedChange = roleSvg?.querySelector('[data-wardley-component-id="accepted-change"]');
+  const shareableOutcome = roleSvg?.querySelector('[data-wardley-component-id="shareable-work-outcome"]');
+  const workDomain = roleSvg?.querySelector('[data-wardley-component-id="codex-work-domain"]');
+  const developerLink = roleSvg?.querySelector('[data-wardley-link-id="link-1"]');
+  const nonDeveloperLink = roleSvg?.querySelector('[data-wardley-link-id="link-3"]');
+  if (!roleSvg || !developer || !nonDeveloper || !acceptedChange || !shareableOutcome || !workDomain || !developerLink || !nonDeveloperLink) {
+    throw new Error("Role focus fixture did not render expected focus metadata.");
+  }
+
+  developer.dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+  await window.happyDOM.whenAsyncComplete();
+  if (!developer.classList.contains("wardley-focus-visible") || !acceptedChange.classList.contains("wardley-focus-visible")) {
+    throw new Error("Developer hover did not keep its direct dependency visible.");
+  }
+  if (!developerLink.classList.contains("wardley-focus-visible")) {
+    throw new Error("Developer hover did not keep its direct link visible.");
+  }
+  if (nonDeveloper.classList.contains("wardley-focus-visible") || shareableOutcome.classList.contains("wardley-focus-visible") || nonDeveloperLink.classList.contains("wardley-focus-visible")) {
+    throw new Error("Developer hover merged the non-developer branch into the visual focus.");
+  }
+  if (workDomain.classList.contains("wardley-focus-visible")) {
+    throw new Error("Developer hover should not highlight converged downstream nodes as direct visual context.");
+  }
+  if (!(focusPaths.textContent ?? "").includes("Verification Harness")) {
+    throw new Error("Developer path panel should still show the full downstream route.");
+  }
+
+  nonDeveloper.dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+  await window.happyDOM.whenAsyncComplete();
+  if (!nonDeveloper.classList.contains("wardley-focus-visible") || !shareableOutcome.classList.contains("wardley-focus-visible")) {
+    throw new Error("Non-developer hover did not keep its direct dependency visible.");
+  }
+  if (developer.classList.contains("wardley-focus-visible") || acceptedChange.classList.contains("wardley-focus-visible") || developerLink.classList.contains("wardley-focus-visible")) {
+    throw new Error("Non-developer hover merged the developer branch into the visual focus.");
   }
 }
 
