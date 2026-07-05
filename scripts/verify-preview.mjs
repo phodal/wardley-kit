@@ -751,9 +751,18 @@ async function createPreviewWindow(hash = "") {
   Object.defineProperty(globalThis, "navigator", { value: window.navigator, configurable: true });
   globalThis.Event = window.Event;
 
-  await import(`${pathToFileURL(join(previewDir, "assets", "client.js")).href}?verify=${previewImportCounter++}`);
+  await import(`${pathToFileURL(join(previewDir, previewClientPath())).href}?verify=${previewImportCounter++}`);
   await window.happyDOM.whenAsyncComplete();
   return window;
+}
+
+function previewClientPath() {
+  const html = readFileSync(join(previewDir, "index.html"), "utf8");
+  const match = html.match(/src="\.\/([^"]*client-[^"]+\.js)"/u);
+  if (!match?.[1]) {
+    throw new Error("Preview index does not reference a hashed client bundle.");
+  }
+  return match[1];
 }
 
 async function clickDownload(window, button) {

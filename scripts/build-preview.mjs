@@ -1,5 +1,5 @@
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
@@ -11,7 +11,6 @@ const distDir = join(repoRoot, "dist");
 await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
 await mkdir(join(distDir, "assets"), { recursive: true });
-await copyFile(join(previewDir, "index.html"), join(distDir, "index.html"));
 await copyFile(join(previewDir, "preview.css"), join(distDir, "preview.css"));
 
 await build({
@@ -22,7 +21,7 @@ await build({
   platform: "browser",
   target: "es2022",
   splitting: true,
-  entryNames: "client",
+  entryNames: "client-[hash]",
   chunkNames: "chunks/[name]-[hash]",
   sourcemap: true,
   loader: {
@@ -32,6 +31,18 @@ await build({
     "process.env.NODE_ENV": JSON.stringify("production")
   }
 });
+
+const clientEntry = (await listBuildOutputs(join(distDir, "assets")))
+  .find((path) => /\/client-[A-Z0-9]+\.js$/u.test(path));
+if (!clientEntry) {
+  throw new Error("Preview build did not produce a hashed client bundle.");
+}
+const indexHtml = await readFile(join(previewDir, "index.html"), "utf8");
+await writeFile(
+  join(distDir, "index.html"),
+  indexHtml.replace("./assets/client.js", `./assets/${basename(clientEntry)}`),
+  "utf8"
+);
 
 for (const path of await listBuildOutputs(distDir)) {
   const content = await readFile(path, "utf8");
