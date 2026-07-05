@@ -16,11 +16,6 @@ import {
 
 type Notation = "sketch" | "clean";
 type PreviewZoomMode = "auto" | "fit" | "custom";
-interface ExampleSource {
-  readonly id: string;
-  readonly title: string;
-  readonly source: string;
-}
 interface PreviewDiagnostic {
   readonly message: string;
   readonly line?: number | undefined;
@@ -30,149 +25,6 @@ const DEFAULT_SOURCE = `title Wardley Map
 component User [0.9, 0.2]
 component Need [0.7, 0.45]
 User->Need`;
-const CODEX_DOMAIN_EXAMPLE = `title Codex Developer Non-Developer Domain Compact
-size [1080, 680]
-style wardley
-
-// Thesis:
-// Codex has two primary user classes.
-// Developer users need accepted code changes.
-// Non-Developer users need understandable, steerable, shareable outcomes.
-// The shared domain is not "AI chat".
-// It is agentic work production: turning intent into artifacts under context,
-// verification, and safety constraints.
-
-// Users
-anchor Developer [0.96, 0.16] label [-92, -12]
-anchor Non-Developer [0.96, 0.46] label [-130, -12]
-
-// User outcomes
-component Accepted Change [0.84, 0.16] label [-144, -10]
-component Shareable Work Outcome [0.84, 0.46] label [-196, -10]
-
-// Shared domain
-component Codex Work Domain [0.72, 0.31] (core, build) label [-144, -22]
-
-// Developer path
-component Developer Workstream [0.62, 0.16] (core, build) label [-172, -14]
-component Task Brief [0.36, 0.08] (genesis, build) label [-92, -10]
-component Repo Context [0.44, 0.15] (build) label [-112, -10]
-component Code Change [0.58, 0.18] (product, buy) label [-118, 12]
-component Test Evidence [0.62, 0.25] (product, buy) label [18, 10]
-component Pull Request [0.74, 0.20] (commodity, outsource) label [18, -12]
-
-// Non-Developer path
-component Non-Developer Workstream [0.62, 0.46] (core, build) label [-210, -14]
-component Intent Brief [0.34, 0.38] (genesis, build) label [-104, -10]
-component Business Context [0.42, 0.46] (ecosystem, buy) label [-142, 12]
-component Work Artifact [0.58, 0.48] (product, buy) label [-120, 12]
-component Reviewable Explanation [0.64, 0.56] (product, buy) label [18, 12]
-component Shared Session [0.74, 0.50] (product, buy) label [18, -12]
-
-// Shared Codex platform
-component Codex Surface [0.70, 0.70] (product, buy) label [18, -12]
-component Agent Orchestrator [0.50, 0.70] (product, buy) label [-152, -12]
-component Context Graph [0.36, 0.70] (build) label [-120, 12]
-component Skills [0.46, 0.80] (ecosystem, buy) label [-70, 12]
-component Verification Harness [0.58, 0.80] (build) label [18, 12]
-component Safety Envelope [0.40, 0.88] (buy) label [-130, 12]
-component Model Gateway [0.28, 0.92] (buy) label [-112, -12]
-component Foundation Models [0.12, 0.96] (market, outsource) label [18, -10]
-
-// User to outcomes
-Developer->Accepted Change
-Non-Developer->Shareable Work Outcome
-
-// Outcomes to shared domain
-Accepted Change->Codex Work Domain
-Shareable Work Outcome->Codex Work Domain
-
-// Domain to two workstreams
-Codex Work Domain->Developer Workstream
-Codex Work Domain->Non-Developer Workstream
-Codex Work Domain->Codex Surface
-
-// Developer flow
-Accepted Change->Developer Workstream
-Developer Workstream->Task Brief
-Developer Workstream->Repo Context
-Developer Workstream->Code Change
-Code Change->Test Evidence
-Test Evidence->Pull Request
-Pull Request->Accepted Change
-
-// Non-Developer flow
-Shareable Work Outcome->Non-Developer Workstream
-Non-Developer Workstream->Intent Brief
-Non-Developer Workstream->Business Context
-Non-Developer Workstream->Work Artifact
-Work Artifact->Reviewable Explanation
-Reviewable Explanation->Shared Session
-Shared Session->Shareable Work Outcome
-
-// Shared platform dependencies
-Codex Surface->Agent Orchestrator
-Developer Workstream->Agent Orchestrator
-Non-Developer Workstream->Agent Orchestrator
-
-Agent Orchestrator->Context Graph
-Agent Orchestrator->Skills
-Agent Orchestrator->Verification Harness
-Agent Orchestrator->Safety Envelope
-Agent Orchestrator->Model Gateway
-
-Context Graph->Repo Context
-Context Graph->Business Context
-Skills->Code Change
-Skills->Work Artifact
-Verification Harness->Test Evidence
-Verification Harness->Reviewable Explanation
-Safety Envelope->Pull Request
-Safety Envelope->Shared Session
-Model Gateway->Foundation Models
-
-// Evolution
-evolve Task Brief->Skills 0.46 (ecosystem, buy) label [26, -14]
-evolve Intent Brief->Work Artifact 0.58 (product, buy) label [26, -14]
-evolve Repo Context->Context Graph 0.42 (build) label [26, 14]
-evolve Code Change->Pull Request 0.74 (commodity, outsource) label [26, -14]
-evolve Work Artifact->Shared Session 0.74 (product, buy) label [26, 14]
-evolve Verification Harness->Test Evidence 0.62 (product, buy) label [26, -14]
-
-// Groups
-pipeline Developer Flow [0.36, 0.74]
-pipeline Non-Developer Flow [0.34, 0.74]
-pipeline Shared Codex Platform [0.28, 0.72]
-
-// Forces
-accelerator Agentic coding maturity [0.58, 0.18] label [16, -12]
-accelerator Shareable agent work [0.58, 0.48] label [16, 18]
-accelerator Context capture [0.36, 0.70] label [-130, -14]
-accelerator Reusable skills [0.46, 0.80] label [16, 18]
-
-deaccelerator Context quality bottleneck [0.36, 0.70] label [16, -14]
-deaccelerator Review trust gap [0.64, 0.56] label [16, 18]
-deaccelerator Safety policy gap [0.40, 0.88] label [-130, 16]
-
-// Operating model
-pioneers [0.72, 0.06, 0.34, 0.56]
-settlers [0.64, 0.30, 0.36, 0.82]
-townplanners [0.54, 0.68, 0.12, 0.96]
-
-// Annotations
-annotation 1 [0.72, 0.31] Codex Work Domain connects two user classes through one shared agentic production model
-annotation 2 [0.62, 0.16] Developer flow optimizes accepted code change
-annotation 3 [0.62, 0.46] Non-Developer flow optimizes reviewable shareable work outcome
-annotation 4 [0.36, 0.70] Context Graph is the key adopter-owned capability
-annotation 5 [0.40, 0.88] Safety Envelope is required before scaling delegated work
-annotations [0.92, 0.76]`;
-const EXAMPLES: readonly ExampleSource[] = [
-  {
-    id: "codex-developer-non-developer-domain",
-    title: "Codex Developer / Non-Developer Domain",
-    source: CODEX_DOMAIN_EXAMPLE
-  }
-];
 const MAX_VISIBLE_DIAGNOSTICS = 12;
 const LONG_SOURCE_LINE_LIMIT = 120;
 const LONG_SOURCE_CHARACTER_LIMIT = 6000;
@@ -194,7 +46,6 @@ const sourceMeta = requiredElement<HTMLElement>("source-meta");
 const zoomStatus = requiredElement<HTMLElement>("zoom-status");
 const sketchButton = requiredElement<HTMLButtonElement>("notation-sketch");
 const cleanButton = requiredElement<HTMLButtonElement>("notation-clean");
-const exampleSelect = requiredElement<HTMLSelectElement>("example-source");
 const openButton = requiredElement<HTMLButtonElement>("open-source");
 const openInput = requiredElement<HTMLInputElement>("open-source-input");
 const saveButton = requiredElement<HTMLButtonElement>("save-source");
@@ -212,11 +63,9 @@ let lastSvg = "";
 let previewZoom = 1;
 let previewZoomMode: PreviewZoomMode = "auto";
 
-populateExampleSelect();
 initializeSource();
 
 sourceInput.addEventListener("input", () => {
-  exampleSelect.value = "";
   syncHighlight();
   renderCurrent();
 });
@@ -259,12 +108,6 @@ diagnostics.addEventListener("click", (event) => {
 
 sketchButton.addEventListener("click", () => setNotation("sketch"));
 cleanButton.addEventListener("click", () => setNotation("clean"));
-exampleSelect.addEventListener("change", () => {
-  const example = EXAMPLES.find((candidate) => candidate.id === exampleSelect.value);
-  if (example) {
-    setSource(example.source, true);
-  }
-});
 openButton.addEventListener("click", () => openInput.click());
 openInput.addEventListener("change", async () => {
   const file = openInput.files?.[0];
@@ -272,7 +115,6 @@ openInput.addEventListener("change", async () => {
     return;
   }
   try {
-    exampleSelect.value = "";
     setSource(await file.text(), true);
   } catch (error) {
     diagnostics.dataset.state = "error";
@@ -283,7 +125,6 @@ openInput.addEventListener("change", async () => {
 });
 saveButton.addEventListener("click", () => saveCurrentSource());
 resetButton.addEventListener("click", () => {
-  exampleSelect.value = "";
   setSource(DEFAULT_SOURCE, true);
 });
 linkButton.addEventListener("click", () => {
@@ -318,14 +159,6 @@ function initializeSource(): void {
   setSource(DEFAULT_SOURCE);
 }
 
-function populateExampleSelect(): void {
-  for (const example of EXAMPLES) {
-    const option = document.createElement("option");
-    option.value = example.id;
-    option.textContent = example.title;
-    exampleSelect.append(option);
-  }
-}
 
 function setSource(source: string, focus = false): void {
   sourceInput.value = source.trimEnd();

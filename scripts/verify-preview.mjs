@@ -150,7 +150,6 @@ async function verifyPreviewUi(testCases) {
   const lineNumberLayer = requiredElement(document, "line-number-layer");
   const sketchButton = requiredElement(document, "notation-sketch");
   const cleanButton = requiredElement(document, "notation-clean");
-  const exampleSelect = requiredElement(document, "example-source");
   requiredElement(document, "open-source");
   const saveButton = requiredElement(document, "save-source");
   const linkButton = requiredElement(document, "copy-link");
@@ -169,7 +168,6 @@ async function verifyPreviewUi(testCases) {
   const diagnostics = requiredElement(document, "diagnostics");
 
   await verifyInitialSource(window, sourceInput, previewOutput);
-  await verifyExampleSource(window, exampleSelect, sourceInput, previewOutput, mapStatus, sourceMeta);
   await verifySourceDownload(window, saveButton);
   await verifyKeyboardShortcuts(window, sourceInput);
   await verifyEditorLineNumbers(window, sourceInput, lineNumberLayer);
@@ -251,37 +249,6 @@ async function verifyInitialSource(window, sourceInput, previewOutput) {
   const svg = previewOutput.querySelector("svg");
   if (svg?.getAttribute("aria-label") !== "Wardley Map") {
     throw new Error("Initial custom preview did not render.");
-  }
-}
-
-async function verifyExampleSource(window, exampleSelect, sourceInput, previewOutput, mapStatus, sourceMeta) {
-  const option = Array.from(exampleSelect.options).find((candidate) => candidate.value === "codex-developer-non-developer-domain");
-  if (!option) {
-    throw new Error("Codex domain example is missing from the example selector.");
-  }
-  exampleSelect.value = option.value;
-  exampleSelect.dispatchEvent(new window.Event("change", { bubbles: true }));
-  await window.happyDOM.whenAsyncComplete();
-
-  if (!sourceInput.value.startsWith("title Codex Developer Non-Developer Domain Compact")) {
-    throw new Error("Codex domain example did not load into the source editor.");
-  }
-  if (mapStatus.textContent !== "25 components, 38 links, 3 PST") {
-    throw new Error(`Codex domain example rendered unexpected map status: "${mapStatus.textContent}".`);
-  }
-  if (sourceMeta.textContent !== sourceMetaLabel(sourceInput.value)) {
-    throw new Error("Codex domain example did not update source metadata.");
-  }
-  const svg = previewOutput.querySelector("svg");
-  if (svg?.getAttribute("aria-label") !== "Codex Developer Non-Developer Domain Compact") {
-    throw new Error("Codex domain example did not render the expected SVG.");
-  }
-
-  sourceInput.value = "title Edited Example\ncomponent User [0.9, 0.2]";
-  sourceInput.dispatchEvent(new window.Event("input", { bubbles: true }));
-  await window.happyDOM.whenAsyncComplete();
-  if (exampleSelect.value !== "") {
-    throw new Error("Manual source edits should switch the example selector back to Custom map.");
   }
 }
 
