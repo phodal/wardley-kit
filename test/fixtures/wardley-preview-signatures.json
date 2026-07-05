@@ -2,284 +2,116 @@
   "version": 1,
   "description": "Stable Wardley preview SVG signatures. Update intentionally with node scripts/verify-preview.mjs --update.",
   "signatures": {
-    "examples/ai-builder-app.owm#sketch": {
-      "key": "examples/ai-builder-app.owm#sketch",
-      "file": "examples/ai-builder-app.owm",
+    "basic#sketch": {
+      "key": "basic#sketch",
+      "file": "basic.owm",
       "notation": "sketch",
-      "title": "AI Builder App Wardley Map",
-      "size": {
-        "width": 1120,
-        "height": 760
-      },
-      "components": 32,
-      "links": 44,
-      "annotations": 5,
-      "notes": 0,
-      "attitudes": 3,
-      "markers": 9,
-      "dense": true,
-      "layoutWarnings": 53,
-      "svgBytes": 65751,
-      "svgHash": "8903c65a9e499b8803fcce555a53877376f907f24e645be519bc10e1f7ed71e1",
-      "elementCounts": {
-        "paths": 132,
-        "lines": 2,
-        "circles": 67,
-        "rectangles": 9,
-        "texts": 55,
-        "tspans": 104
-      }
-    },
-    "examples/ai-builder-app.owm#clean": {
-      "key": "examples/ai-builder-app.owm#clean",
-      "file": "examples/ai-builder-app.owm",
-      "notation": "clean",
-      "title": "AI Builder App Wardley Map",
-      "size": {
-        "width": 1120,
-        "height": 760
-      },
-      "components": 32,
-      "links": 44,
-      "annotations": 5,
-      "notes": 0,
-      "attitudes": 3,
-      "markers": 9,
-      "dense": true,
-      "layoutWarnings": 47,
-      "svgBytes": 56156,
-      "svgHash": "98ef82c9dc3cd49bd4794de80213d5db304116698c2d8fff4da9ed442c3771a6",
-      "elementCounts": {
-        "paths": 105,
-        "lines": 20,
-        "circles": 67,
-        "rectangles": 47,
-        "texts": 58,
-        "tspans": 66
-      }
-    },
-    "examples/ai-coding-trends.owm#sketch": {
-      "key": "examples/ai-coding-trends.owm#sketch",
-      "file": "examples/ai-coding-trends.owm",
-      "notation": "sketch",
-      "title": "AI Coding Trends",
+      "title": "Verification Map",
       "size": {
         "width": 960,
         "height": 640
       },
-      "components": 9,
-      "links": 10,
-      "annotations": 2,
+      "components": 4,
+      "links": 3,
+      "annotations": 0,
       "notes": 0,
-      "attitudes": 3,
-      "markers": 4,
-      "dense": false,
-      "layoutWarnings": 1,
-      "svgBytes": 21649,
-      "svgHash": "ef928118400530f14d86469a6d774733a1be8941a277d25935f31dcfb61867e9",
-      "elementCounts": {
-        "paths": 40,
-        "lines": 2,
-        "circles": 20,
-        "rectangles": 5,
-        "texts": 22,
-        "tspans": 36
-      }
-    },
-    "examples/ai-coding-trends.owm#clean": {
-      "key": "examples/ai-coding-trends.owm#clean",
-      "file": "examples/ai-coding-trends.owm",
-      "notation": "clean",
-      "title": "AI Coding Trends",
-      "size": {
-        "width": 960,
-        "height": 640
-      },
-      "components": 9,
-      "links": 10,
-      "annotations": 2,
-      "notes": 0,
-      "attitudes": 3,
-      "markers": 4,
-      "dense": false,
-      "layoutWarnings": 0,
-      "svgBytes": 17509,
-      "svgHash": "c6a56dab6a8c4413c1760e3a5f2481a0ad3652f0a3ca2edc800daa73f4fb43cb",
-      "elementCounts": {
-        "paths": 29,
-        "lines": 8,
-        "circles": 20,
-        "rectangles": 17,
-        "texts": 25,
-        "tspans": 20
-      }
-    },
-    "examples/platform-strategy.owm#sketch": {
-      "key": "examples/platform-strategy.owm#sketch",
-      "file": "examples/platform-strategy.owm",
-      "notation": "sketch",
-      "title": "Platform Strategy",
-      "size": {
-        "width": 960,
-        "height": 640
-      },
-      "components": 6,
-      "links": 5,
-      "annotations": 1,
-      "notes": 1,
       "attitudes": 0,
       "markers": 0,
       "dense": false,
-      "layoutWarnings": 1,
-      "svgBytes": 13114,
-      "svgHash": "86fa23d413aa35aa27df4464ed88a07df965f781a3178109396e9e9615f0e1d3",
+      "layoutWarnings": 0,
+      "svgBytes": 7743,
+      "svgHash": "fdc42caa9e0b14c6d00b31197b2499f8b7e215c202e791c44add2177a9334070",
       "elementCounts": {
-        "paths": 21,
+        "paths": 13,
         "lines": 2,
-        "circles": 13,
+        "circles": 8,
         "rectangles": 3,
-        "texts": 16,
-        "tspans": 21
+        "texts": 10,
+        "tspans": 9
       }
     },
-    "examples/platform-strategy.owm#clean": {
-      "key": "examples/platform-strategy.owm#clean",
-      "file": "examples/platform-strategy.owm",
+    "basic#clean": {
+      "key": "basic#clean",
+      "file": "basic.owm",
       "notation": "clean",
-      "title": "Platform Strategy",
+      "title": "Verification Map",
       "size": {
         "width": 960,
         "height": 640
       },
-      "components": 6,
-      "links": 5,
-      "annotations": 1,
-      "notes": 1,
+      "components": 4,
+      "links": 3,
+      "annotations": 0,
+      "notes": 0,
       "attitudes": 0,
       "markers": 0,
       "dense": false,
       "layoutWarnings": 0,
-      "svgBytes": 11016,
-      "svgHash": "b2c7850ddb3803f1795e95294aafe8ff3bddbe24fcdc2bbced5372c281f5c4e6",
+      "svgBytes": 6384,
+      "svgHash": "dc4ccc22d3631316f723fc6fd02aea0ceb8a3061871ce9b60c26ebe915af7b0c",
       "elementCounts": {
-        "paths": 14,
-        "lines": 7,
-        "circles": 13,
-        "rectangles": 11,
-        "texts": 19,
-        "tspans": 11
-      }
-    },
-    "examples/tea-shop-sketch.owm#sketch": {
-      "key": "examples/tea-shop-sketch.owm#sketch",
-      "file": "examples/tea-shop-sketch.owm",
-      "notation": "sketch",
-      "title": "Tea Shop Sketch",
-      "size": {
-        "width": 1024,
-        "height": 768
-      },
-      "components": 11,
-      "links": 13,
-      "annotations": 0,
-      "notes": 3,
-      "attitudes": 4,
-      "markers": 0,
-      "dense": false,
-      "layoutWarnings": 0,
-      "svgBytes": 20623,
-      "svgHash": "ee857cbb6710fca3a7b93ef40c8f38d82a1da044b858929e0fcd4a4ebd974a02",
-      "elementCounts": {
-        "paths": 38,
-        "lines": 2,
-        "circles": 21,
-        "rectangles": 5,
-        "texts": 20,
-        "tspans": 26
-      }
-    },
-    "examples/tea-shop-sketch.owm#clean": {
-      "key": "examples/tea-shop-sketch.owm#clean",
-      "file": "examples/tea-shop-sketch.owm",
-      "notation": "clean",
-      "title": "Tea Shop Sketch",
-      "size": {
-        "width": 1024,
-        "height": 768
-      },
-      "components": 11,
-      "links": 13,
-      "annotations": 0,
-      "notes": 3,
-      "attitudes": 4,
-      "markers": 0,
-      "dense": false,
-      "layoutWarnings": 0,
-      "svgBytes": 17662,
-      "svgHash": "e9bd70e7563dcc7db07e89ed26114e1bc4eb4e78a1b9e46cb60d5b087e5f2554",
-      "elementCounts": {
-        "paths": 30,
+        "paths": 10,
         "lines": 5,
-        "circles": 21,
-        "rectangles": 20,
-        "texts": 23,
-        "tspans": 17
+        "circles": 8,
+        "rectangles": 5,
+        "texts": 13,
+        "tspans": 4
       }
     },
-    "examples/tea-shop.owm#sketch": {
-      "key": "examples/tea-shop.owm#sketch",
-      "file": "examples/tea-shop.owm",
+    "dense#sketch": {
+      "key": "dense#sketch",
+      "file": "dense.owm",
       "notation": "sketch",
-      "title": "Tea Shop",
+      "title": "Dense Verification Map",
       "size": {
         "width": 960,
         "height": 640
       },
-      "components": 9,
-      "links": 6,
-      "annotations": 1,
-      "notes": 1,
+      "components": 30,
+      "links": 45,
+      "annotations": 0,
+      "notes": 0,
       "attitudes": 0,
       "markers": 0,
-      "dense": false,
-      "layoutWarnings": 0,
-      "svgBytes": 15517,
-      "svgHash": "0a7d4629f7fdf30d82bd6b910a9ceeaa7ca65937027de4b9c212e288f9f6010a",
+      "dense": true,
+      "layoutWarnings": 1,
+      "svgBytes": 44693,
+      "svgHash": "57495ec58222f363adfc181958f55bc4ca8d774fc8dbbcae274ec77b84ed7a9d",
       "elementCounts": {
-        "paths": 23,
+        "paths": 97,
         "lines": 2,
-        "circles": 20,
+        "circles": 60,
         "rectangles": 3,
-        "texts": 19,
-        "tspans": 23
+        "texts": 36,
+        "tspans": 35
       }
     },
-    "examples/tea-shop.owm#clean": {
-      "key": "examples/tea-shop.owm#clean",
-      "file": "examples/tea-shop.owm",
+    "dense#clean": {
+      "key": "dense#clean",
+      "file": "dense.owm",
       "notation": "clean",
-      "title": "Tea Shop",
+      "title": "Dense Verification Map",
       "size": {
         "width": 960,
         "height": 640
       },
-      "components": 9,
-      "links": 6,
-      "annotations": 1,
-      "notes": 1,
+      "components": 30,
+      "links": 45,
+      "annotations": 0,
+      "notes": 0,
       "attitudes": 0,
       "markers": 0,
-      "dense": false,
+      "dense": true,
       "layoutWarnings": 0,
-      "svgBytes": 13239,
-      "svgHash": "a9274708c0a453b424ffb5f5c1043aaf97f6a14ed1ecb6585ec2bf2ca478c98c",
+      "svgBytes": 40428,
+      "svgHash": "a3fa7a60c57300bb93529aa91021e02001db0dfb6eef58c8685c02affe7c6212",
       "elementCounts": {
-        "paths": 16,
-        "lines": 7,
-        "circles": 20,
-        "rectangles": 14,
-        "texts": 22,
-        "tspans": 14
+        "paths": 94,
+        "lines": 5,
+        "circles": 60,
+        "rectangles": 31,
+        "texts": 39,
+        "tspans": 30
       }
     }
   }

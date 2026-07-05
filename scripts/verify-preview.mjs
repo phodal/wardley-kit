@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Window } from "happy-dom";
 import {
@@ -18,18 +18,40 @@ const fixturePath = join(repoRoot, "test", "fixtures", "wardley-preview-signatur
 const notationModes = ["sketch", "clean"];
 const updateSnapshots = process.argv.includes("--update");
 let previewImportCounter = 0;
+const verificationCases = [
+  {
+    name: "basic",
+    source: `title Verification Map
+size [960, 640]
+component User [0.9, 0.2]
+component Need [0.7, 0.45]
+component Capability [0.5, 0.62] (build)
+component Runtime [0.3, 0.82] (buy)
+User->Need
+Need->Capability
+Capability->Runtime`
+  },
+  {
+    name: "dense",
+    source: [
+      "title Dense Verification Map",
+      "size [960, 640]",
+      ...Array.from({ length: 30 }, (_, index) => {
+        const visibility = (0.92 - (index % 10) * 0.07).toFixed(2);
+        const evolution = (0.12 + Math.floor(index / 10) * 0.22 + (index % 3) * 0.03).toFixed(2);
+        return `component C${index + 1} [${evolution}, ${visibility}] label [18, -12]`;
+      }),
+      ...Array.from({ length: 45 }, (_, index) => `C${index % 30 + 1}->C${(index + 1) % 30 + 1}`)
+    ].join("\n")
+  }
+];
 
 await main();
 
 async function main() {
-  const files = listWardleyFiles(join(repoRoot, "examples"));
-  if (files.length === 0) {
-    throw new Error("No Wardley preview examples found.");
-  }
-
   const signatures = Object.fromEntries(
-    files.flatMap((file) => notationModes.map((notation) => {
-      const signature = createVisualSignature(file, notation);
+    verificationCases.flatMap((testCase) => notationModes.map((notation) => {
+      const signature = createVisualSignature(testCase, notation);
       return [signature.key, signature];
     }))
   );
@@ -46,32 +68,31 @@ async function main() {
     assertSignaturesMatch(signatures);
   }
 
-  const previewResults = await verifyPreviewUi(files);
+  const previewResults = await verifyPreviewUi(verificationCases);
   console.table(previewResults);
-  console.log(`Wardley preview verification OK: ${files.length} maps, ${notationModes.length} notations.`);
+  console.log(`Wardley preview verification OK: ${verificationCases.length} cases, ${notationModes.length} notations.`);
 }
 
-function createVisualSignature(file, notation) {
-  const source = readFileSync(file, "utf8");
-  const map = parseWardleyMap(source, { filename: relative(repoRoot, file) });
+function createVisualSignature(testCase, notation) {
+  const map = parseWardleyMap(testCase.source, { filename: `${testCase.name}.owm` });
   const svg = renderWardleyMapSvg(map, { notation });
   const layout = analyzeWardleyLayout(map, { notation });
   const dense = isDenseMap(map);
 
   if (!svg.trimStart().startsWith("<svg")) {
-    throw new Error(`${relative(repoRoot, file)} ${notation}: SVG render did not produce an <svg> document.`);
+    throw new Error(`${testCase.name} ${notation}: SVG render did not produce an <svg> document.`);
   }
   if (!svg.includes(map.title)) {
-    throw new Error(`${relative(repoRoot, file)} ${notation}: SVG render is missing the map title "${map.title}".`);
+    throw new Error(`${testCase.name} ${notation}: SVG render is missing the map title "${map.title}".`);
   }
   const blockingDiagnostics = layout.diagnostics.filter((diagnostic) => diagnostic.code !== "S4WARDLEY_LAYOUT_TEXT_TRUNCATED");
   if (blockingDiagnostics.length > 0 && !dense) {
-    throw new Error(`${relative(repoRoot, file)} ${notation}: layout diagnostics: ${blockingDiagnostics.map((diagnostic) => diagnostic.message).join("; ")}`);
+    throw new Error(`${testCase.name} ${notation}: layout diagnostics: ${blockingDiagnostics.map((diagnostic) => diagnostic.message).join("; ")}`);
   }
 
   return {
-    key: `${relative(repoRoot, file)}#${notation}`,
-    file: relative(repoRoot, file),
+    key: `${testCase.name}#${notation}`,
+    file: `${testCase.name}.owm`,
     notation,
     title: map.title,
     size: map.size,
@@ -122,10 +143,9 @@ function assertSignaturesMatch(actual) {
   }
 }
 
-async function verifyPreviewUi(files) {
+async function verifyPreviewUi(testCases) {
   const window = await createPreviewWindow();
   const { document } = window;
-  const exampleSelect = requiredElement(document, "example-select");
   const sourceInput = requiredElement(document, "source-input");
   const lineNumberLayer = requiredElement(document, "line-number-layer");
   const sketchButton = requiredElement(document, "notation-sketch");
@@ -147,7 +167,7 @@ async function verifyPreviewUi(files) {
   const sourceMeta = requiredElement(document, "source-meta");
   const diagnostics = requiredElement(document, "diagnostics");
 
-  await verifyExampleSelector(window, files, exampleSelect, previewOutput);
+  await verifyInitialSource(window, sourceInput, previewOutput);
   await verifySourceDownload(window, saveButton);
   await verifyKeyboardShortcuts(window, sourceInput);
   await verifyEditorLineNumbers(window, sourceInput, lineNumberLayer);
@@ -161,9 +181,9 @@ async function verifyPreviewUi(files) {
   await verifyPreviewControls(window, sourceInput, previewPane, previewOutput, zoomStatus, zoomOutButton, zoomFitButton, zoomInButton, fullscreenButton);
 
   const results = [];
-  for (const file of files) {
-    const source = readFileSync(file, "utf8").trimEnd();
-    const map = parseWardleyMap(source, { filename: relative(repoRoot, file) });
+  for (const testCase of testCases) {
+    const source = testCase.source.trimEnd();
+    const map = parseWardleyMap(source, { filename: `${testCase.name}.owm` });
     const summary = summarizeWardleyMap(map);
     sourceInput.value = source;
     sourceInput.dispatchEvent(new window.Event("input", { bubbles: true }));
@@ -177,38 +197,40 @@ async function verifyPreviewUi(files) {
       const dense = isDenseMap(map);
       const expectedStatus = `${summary.componentCount} components, ${summary.linkCount} links, ${summary.attitudeCount} PST`;
       if (mapStatus.textContent !== expectedStatus) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: expected map status "${expectedStatus}", got "${mapStatus.textContent}".`);
+        throw new Error(`${testCase.name} ${notation}: expected map status "${expectedStatus}", got "${mapStatus.textContent}".`);
       }
       if (sourceMeta.textContent !== sourceMetaLabel(source)) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: source meta did not update.`);
+        throw new Error(`${testCase.name} ${notation}: source meta did not update.`);
       }
       const blockingDiagnostics = layout.diagnostics.filter((diagnostic) => diagnostic.code !== "S4WARDLEY_LAYOUT_TEXT_TRUNCATED");
       if (blockingDiagnostics.length > 0 && !dense) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: layout diagnostics: ${blockingDiagnostics.map((diagnostic) => diagnostic.message).join("; ")}`);
+        throw new Error(`${testCase.name} ${notation}: layout diagnostics: ${blockingDiagnostics.map((diagnostic) => diagnostic.message).join("; ")}`);
       }
-      const expectedLayoutStatus = layout.diagnostics.length === 0 ? "No overlaps detected" : `${layout.diagnostics.length} warnings`;
+      const expectedLayoutStatus = layout.diagnostics.length === 0
+        ? dense ? "Dense map" : "No overlaps detected"
+        : `${layout.diagnostics.length} warnings`;
       if (layoutStatus.textContent !== expectedLayoutStatus) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: expected layout status "${expectedLayoutStatus}", got "${layoutStatus.textContent}".`);
+        throw new Error(`${testCase.name} ${notation}: expected layout status "${expectedLayoutStatus}", got "${layoutStatus.textContent}".`);
       }
       const svg = previewOutput.querySelector("svg");
       if (!svg) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: preview output did not contain an SVG element.`);
+        throw new Error(`${testCase.name} ${notation}: preview output did not contain an SVG element.`);
       }
       if (svg.getAttribute("aria-label") !== map.title) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: preview SVG title mismatch.`);
+        throw new Error(`${testCase.name} ${notation}: preview SVG title mismatch.`);
       }
 
       const svgDownload = await clickDownload(window, svgButton);
       const svgText = await svgDownload.blob.text();
       if (!svgText.trimStart().startsWith("<svg")) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: SVG download did not contain an SVG document.`);
+        throw new Error(`${testCase.name} ${notation}: SVG download did not contain an SVG document.`);
       }
       if (!svgDownload.download.endsWith(".svg")) {
-        throw new Error(`${relative(repoRoot, file)} ${notation}: SVG download filename was "${svgDownload.download}".`);
+        throw new Error(`${testCase.name} ${notation}: SVG download filename was "${svgDownload.download}".`);
       }
 
       results.push({
-        file: relative(repoRoot, file),
+        file: `${testCase.name}.owm`,
         notation,
         status: "OK",
         svgBytes: svgText.length
@@ -219,25 +241,14 @@ async function verifyPreviewUi(files) {
   return results;
 }
 
-async function verifyExampleSelector(window, files, exampleSelect, previewOutput) {
-  const optionValues = [...exampleSelect.querySelectorAll("option")].map((option) => option.value);
-  const expectedValues = files.map((file) => basename(file, extname(file)));
-  const missingOptions = [...expectedValues, "custom"].filter((value) => !optionValues.includes(value));
-  if (missingOptions.length > 0) {
-    throw new Error(`Example selector is missing option(s): ${missingOptions.join(", ")}`);
+async function verifyInitialSource(window, sourceInput, previewOutput) {
+  await window.happyDOM.whenAsyncComplete();
+  if (!sourceInput.value.startsWith("title Wardley Map")) {
+    throw new Error("Initial preview source should be the blank custom map.");
   }
-
-  for (const file of files) {
-    const id = basename(file, extname(file));
-    const source = readFileSync(file, "utf8");
-    const map = parseWardleyMap(source, { filename: relative(repoRoot, file) });
-    exampleSelect.value = id;
-    exampleSelect.dispatchEvent(new window.Event("change", { bubbles: true }));
-    await window.happyDOM.whenAsyncComplete();
-    const svg = previewOutput.querySelector("svg");
-    if (svg?.getAttribute("aria-label") !== map.title) {
-      throw new Error(`${relative(repoRoot, file)}: example selector did not load "${map.title}".`);
-    }
+  const svg = previewOutput.querySelector("svg");
+  if (svg?.getAttribute("aria-label") !== "Wardley Map") {
+    throw new Error("Initial custom preview did not render.");
   }
 }
 
@@ -773,20 +784,6 @@ function requiredElement(document, id) {
     throw new Error(`Missing preview element: ${id}`);
   }
   return element;
-}
-
-function listWardleyFiles(dir) {
-  return readdirSync(dir)
-    .flatMap((entry) => {
-      const path = join(dir, entry);
-      const stat = statSync(path);
-      if (stat.isDirectory()) {
-        return listWardleyFiles(path);
-      }
-      return [path];
-    })
-    .filter((path) => [".wm", ".owm"].includes(extname(path).toLowerCase()))
-    .sort((left, right) => left.localeCompare(right));
 }
 
 function lineCount(value) {

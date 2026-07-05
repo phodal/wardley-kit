@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   analyzeWardleyLayout,
@@ -12,19 +10,59 @@ import {
   wardleyToVisualizationGraph
 } from "../src/index.js";
 
-function readExample(name: string): string {
-  return readFileSync(resolve("examples", name), "utf8");
-}
+const BASIC_MAP = `title Basic Map
+size [960, 640]
+component User [0.9, 0.2]
+component Need [0.7, 0.45]
+component Capability [0.5, 0.62] (build)
+component Runtime [0.3, 0.82] (buy)
+User->Need
+Need->Capability
+Capability->Runtime`;
+
+const GRAPH_MAP = `title Reachable Map
+size [1120, 760]
+component Citizen Builders [0.95, 0.50]
+component Idea to Live App [0.84, 0.50]
+component Prompt to App Builder [0.68, 0.58] (buy)
+component Backend Services [0.40, 0.82] (outsource)
+component Model Gateway [0.23, 0.69] (buy)
+component Foundation Models [0.12, 0.82] (outsource)
+Citizen Builders->Idea to Live App
+Idea to Live App->Prompt to App Builder
+Prompt to App Builder->Backend Services
+Backend Services->Model Gateway
+Model Gateway->Foundation Models`;
+
+const PLATFORM_MAP = `title Platform Map
+size [960, 640]
+component User Need [0.95, 0.18]
+component Product Experience [0.82, 0.42] (build)
+component API Gateway [0.66, 0.58]
+component Identity [0.57, 0.70] (buy)
+User Need->Product Experience
+Product Experience->API Gateway
+API Gateway->Identity
+evolve Product Experience 0.68 (market, build)`;
+
+const DENSE_MAP = `title Dense Map
+size [960, 640]
+${Array.from({ length: 30 }, (_, index) => {
+  const visibility = (0.92 - (index % 10) * 0.07).toFixed(2);
+  const evolution = (0.12 + Math.floor(index / 10) * 0.22 + (index % 3) * 0.03).toFixed(2);
+  return `component C${index + 1} [${evolution}, ${visibility}]`;
+}).join("\n")}
+${Array.from({ length: 45 }, (_, index) => `C${index % 30 + 1}->C${(index + 1) % 30 + 1}`).join("\n")}`;
 
 describe("wardley-kit", () => {
   it("parses and renders a Wardley map", () => {
-    const map = parseWardleyMap(readExample("tea-shop.owm"));
+    const map = parseWardleyMap(BASIC_MAP);
     const svg = renderWardleyMapSvg(map, { notation: "clean" });
 
-    expect(map.title).toBe("Tea Shop");
-    expect(map.components.length).toBeGreaterThan(5);
+    expect(map.title).toBe("Basic Map");
+    expect(map.components.length).toBe(4);
     expect(svg).toContain("<svg");
-    expect(svg).toContain("Tea Shop");
+    expect(svg).toContain("Basic Map");
   });
 
   it("reports parse diagnostics for unresolved links", () => {
@@ -35,7 +73,7 @@ describe("wardley-kit", () => {
   });
 
   it("exposes graph paths for reachable context", () => {
-    const map = parseWardleyMap(readExample("ai-builder-app.owm"));
+    const map = parseWardleyMap(GRAPH_MAP);
     const graph = buildWardleyGraph(map);
     const focus = graph.nodesByName.get("citizen builders");
     const result = wardleyGraphPaths(graph, focus?.id ?? "", "outgoing", { maxPaths: 8 });
@@ -45,7 +83,7 @@ describe("wardley-kit", () => {
   });
 
   it("summarizes as a generic visualization graph", () => {
-    const map = parseWardleyMap(readExample("platform-strategy.owm"));
+    const map = parseWardleyMap(PLATFORM_MAP);
     const graph = wardleyToVisualizationGraph(map);
 
     expect(graph.title).toBe(map.title);
@@ -54,7 +92,7 @@ describe("wardley-kit", () => {
   });
 
   it("keeps dense maps readable through auto-scale", () => {
-    const map = parseWardleyMap(readExample("ai-builder-app.owm"));
+    const map = parseWardleyMap(DENSE_MAP);
     const scale = wardleyAutoScaleFactor(map);
     const layout = analyzeWardleyLayout(map, { autoScale: true });
 

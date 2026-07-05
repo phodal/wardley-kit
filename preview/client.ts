@@ -13,33 +13,18 @@ import {
   type WardleyGraphPathResult,
   type WardleyMap
 } from "../src/index.js";
-import aiBuilderAppSource from "../examples/ai-builder-app.owm";
-import sampleSource from "../examples/ai-coding-trends.owm";
-import platformStrategySource from "../examples/platform-strategy.owm";
-import teaShopSketchSource from "../examples/tea-shop-sketch.owm";
-import teaShopSource from "../examples/tea-shop.owm";
 
 type Notation = "sketch" | "clean";
 type PreviewZoomMode = "auto" | "fit" | "custom";
-interface PreviewExample {
-  readonly id: string;
-  readonly label: string;
-  readonly source: string;
-}
 interface PreviewDiagnostic {
   readonly message: string;
   readonly line?: number | undefined;
 }
 
-const CUSTOM_EXAMPLE_ID = "custom";
-const examples: readonly PreviewExample[] = [
-  { id: "ai-builder-app", label: "AI Builder App", source: aiBuilderAppSource },
-  { id: "ai-coding-trends", label: "AI Coding Trends", source: sampleSource },
-  { id: "platform-strategy", label: "Platform Strategy", source: platformStrategySource },
-  { id: "tea-shop-sketch", label: "Tea Shop Sketch", source: teaShopSketchSource },
-  { id: "tea-shop", label: "Tea Shop", source: teaShopSource }
-];
-const exampleById = new Map(examples.map((example) => [example.id, example]));
+const DEFAULT_SOURCE = `title Wardley Map
+component User [0.9, 0.2]
+component Need [0.7, 0.45]
+User->Need`;
 const MAX_VISIBLE_DIAGNOSTICS = 12;
 const LONG_SOURCE_LINE_LIMIT = 120;
 const LONG_SOURCE_CHARACTER_LIMIT = 6000;
@@ -48,7 +33,6 @@ const LONG_CALLOUT_TEXT_LIMIT = 96;
 const MAX_FOCUS_PATHS = 6;
 const MAX_FOCUS_PATH_DEPTH = 12;
 
-const exampleSelect = requiredElement<HTMLSelectElement>("example-select");
 const sourceInput = requiredElement<HTMLTextAreaElement>("source-input");
 const lineNumberLayer = requiredElement<HTMLElement>("line-number-layer");
 const highlightLayer = requiredElement<HTMLElement>("highlight-layer");
@@ -79,13 +63,9 @@ let lastSvg = "";
 let previewZoom = 1;
 let previewZoomMode: PreviewZoomMode = "auto";
 
-initializeExamples();
 initializeSource();
 
 sourceInput.addEventListener("input", () => {
-  if (exampleSelect.value !== CUSTOM_EXAMPLE_ID) {
-    exampleSelect.value = CUSTOM_EXAMPLE_ID;
-  }
   syncHighlight();
   renderCurrent();
 });
@@ -128,13 +108,6 @@ diagnostics.addEventListener("click", (event) => {
 
 sketchButton.addEventListener("click", () => setNotation("sketch"));
 cleanButton.addEventListener("click", () => setNotation("clean"));
-exampleSelect.addEventListener("change", () => {
-  if (exampleSelect.value === CUSTOM_EXAMPLE_ID) {
-    return;
-  }
-  const selected = exampleById.get(exampleSelect.value) ?? examples[0]!;
-  setSource(selected.source, selected.id, true);
-});
 openButton.addEventListener("click", () => openInput.click());
 openInput.addEventListener("change", async () => {
   const file = openInput.files?.[0];
@@ -142,7 +115,7 @@ openInput.addEventListener("change", async () => {
     return;
   }
   try {
-    setSource(await file.text(), CUSTOM_EXAMPLE_ID, true);
+    setSource(await file.text(), true);
   } catch (error) {
     diagnostics.dataset.state = "error";
     diagnostics.innerHTML = diagnosticList([{ message: error instanceof Error ? error.message : String(error) }]);
@@ -152,8 +125,7 @@ openInput.addEventListener("change", async () => {
 });
 saveButton.addEventListener("click", () => saveCurrentSource());
 resetButton.addEventListener("click", () => {
-  const selected = exampleById.get(exampleSelect.value) ?? examples[0]!;
-  setSource(selected.source, selected.id, true);
+  setSource(DEFAULT_SOURCE, true);
 });
 linkButton.addEventListener("click", () => {
   void copyPreviewStateLink();
@@ -176,27 +148,19 @@ function downloadCurrentSvg(): void {
   downloadBytes(`${slugify(lastMap.title)}.svg`, "image/svg+xml;charset=utf-8", new TextEncoder().encode(lastSvg));
 }
 
-function initializeExamples(): void {
-  exampleSelect.innerHTML = [
-    ...examples.map((example) => `<option value="${escapeHtml(example.id)}">${escapeHtml(example.label)}</option>`),
-    `<option value="${CUSTOM_EXAMPLE_ID}">Custom source</option>`
-  ].join("");
-}
-
 function initializeSource(): void {
   const state = previewStateFromHash();
   if (state) {
     notation = state.notation;
-    setSource(state.source, CUSTOM_EXAMPLE_ID);
+    setSource(state.source);
     syncNotationButtons();
     return;
   }
-  setSource(examples[0]!.source, examples[0]!.id);
+  setSource(DEFAULT_SOURCE);
 }
 
-function setSource(source: string, exampleId: string, focus = false): void {
+function setSource(source: string, focus = false): void {
   sourceInput.value = source.trimEnd();
-  exampleSelect.value = exampleId;
   syncHighlight();
   renderCurrent();
   if (focus) {

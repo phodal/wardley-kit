@@ -15,8 +15,7 @@
     }
   },
   "files": [
-    "dist-lib",
-    "examples"
+    "dist-lib"
   ],
   "engines": {
     "node": ">=20"
