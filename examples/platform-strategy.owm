@@ -1,0 +1,21 @@
+title Platform Strategy
+size [960, 640]
+style colour
+
+component User Need [0.95, 0.18]
+component Product Experience [0.82, 0.42] (build)
+component API Gateway [0.66, 0.58]
+component Identity [0.57, 0.70] (buy)
+component Compute Runtime [0.38, 0.78] label [14, -28]
+component Observability [0.34, 0.64] (outsource)
+
+User Need->Product Experience
+Product Experience+>API Gateway; route traffic
+API Gateway->Identity
+API Gateway->Compute Runtime
+Compute Runtime->Observability
+
+evolve Product Experience 0.68 (market, build)
+pipeline Compute Runtime [0.52, 0.92]
+annotation 2 [0.92, 0.70] API governance reduces duplicated platform work
+note Watch for inertia in identity migration [0.25, 0.70]

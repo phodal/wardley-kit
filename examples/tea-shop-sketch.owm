@@ -1,0 +1,44 @@
+title Tea Shop Sketch
+size [1024, 768]
+style wardley
+
+anchor Customer [0.92, 0.66] label [-68, -70]
+component A wee home-baked bun [0.68, 0.30] label [-96, -6]
+component Fresh (loose leaf) tea [0.50, 0.29] label [-82, 42]
+component Cup of tea [0.62, 0.70] label [10, -30]
+component Table service [0.55, 0.64] label [-72, 36]
+component Plate [0.55, 0.79] label [12, -36]
+component Cup [0.55, 0.92] label [12, 24]
+component Hot water [0.42, 0.80] label [16, 6]
+component Water [0.32, 0.85] label [14, 8]
+component Hot water kettle tap [0.20, 0.66] label [-112, 10]
+component Power [0.06, 0.80] label [16, 8]
+
+pioneers [0.78, 0.10, 0.38, 0.40]
+settlers [0.68, 0.56, 0.48, 0.74]
+townplanners [0.58, 0.70, 0.16, 0.96]
+townplanners [0.36, 0.50, 0.02, 0.92]
+
+build A wee home-baked bun
+build Fresh (loose leaf) tea
+buy Cup
+buy Plate
+outsource Power
+
+Customer->A wee home-baked bun
+Customer->Fresh (loose leaf) tea
+Customer->Cup of tea
+A wee home-baked bun->Cup of tea
+A wee home-baked bun->Plate
+Fresh (loose leaf) tea->Cup of tea
+Cup of tea->Table service
+Cup of tea->Plate
+Cup of tea->Cup
+Cup of tea->Hot water
+Hot water->Water
+Hot water->Hot water kettle tap
+Hot water kettle tap->Power
+
+note Artisan buyer (Pioneer) [0.52, 0.06]
+note Front of House (Settler) [0.43, 0.47]
+note Kitchen (Town Planner) [0.10, 0.34]

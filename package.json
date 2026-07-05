@@ -1,0 +1,39 @@
+{
+  "name": "wardley-kit",
+  "version": "0.1.0",
+  "description": "Wardley map parser, SVG renderer, and browser preview.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phodal/wardley-kit.git"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist-lib/index.d.ts",
+      "import": "./dist-lib/index.js"
+    }
+  },
+  "files": [
+    "dist-lib",
+    "examples"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "preview:build": "npm run build && node scripts/build-preview.mjs",
+    "preview": "npm run preview:build && node scripts/serve-preview.mjs",
+    "verify:preview": "npm run preview:build && node scripts/verify-preview.mjs",
+    "test": "vitest run",
+    "check": "npm run build && npm test && npm run verify:preview"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "esbuild": "^0.28.0",
+    "happy-dom": "^20.10.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.13"
+  }
+}

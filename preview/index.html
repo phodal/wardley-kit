@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wardley Map Preview</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Wardley Map Preview</h1>
+          <p id="map-status">Ready</p>
+        </div>
+        <div class="actions" aria-label="Preview actions">
+          <select id="example-select" aria-label="Example maps"></select>
+          <div class="segment" role="group" aria-label="Notation">
+            <button id="notation-sketch" type="button" data-active="true">Sketch</button>
+            <button id="notation-clean" type="button">Clean</button>
+          </div>
+          <button id="open-source" type="button">Open</button>
+          <input id="open-source-input" type="file" accept=".owm,.wm,text/plain" hidden />
+          <button id="save-source" type="button">Save</button>
+          <button id="reset-source" type="button">Reset</button>
+          <button id="copy-link" type="button">Link</button>
+          <button id="download-svg" type="button">SVG</button>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Wardley editor and preview">
+        <section class="editor-pane" aria-label="Source editor">
+          <div class="pane-header">
+            <h2>Source</h2>
+            <span id="source-meta"></span>
+          </div>
+          <div class="editor-frame">
+            <div class="editor-gutter" aria-hidden="true">
+              <pre id="line-number-layer" class="editor-line-numbers"></pre>
+            </div>
+            <pre id="highlight-layer" class="editor-highlight" aria-hidden="true"></pre>
+            <textarea
+              id="source-input"
+              class="editor-input"
+              spellcheck="false"
+              wrap="off"
+              aria-label="Wardley map source"
+            ></textarea>
+          </div>
+        </section>
+
+        <section id="preview-pane" class="preview-pane" aria-label="Rendered preview">
+          <div class="pane-header">
+            <h2>Preview</h2>
+            <div class="preview-header-tools">
+              <span id="zoom-status">Fit</span>
+              <div class="mini-actions" role="group" aria-label="Preview zoom">
+                <button id="zoom-out" type="button" title="Zoom out">-</button>
+                <button id="zoom-fit" type="button" title="Fit to pane">Fit</button>
+                <button id="zoom-in" type="button" title="Zoom in">+</button>
+                <button id="fullscreen-preview" type="button" title="Toggle full preview">Full</button>
+              </div>
+              <span id="layout-status"></span>
+            </div>
+          </div>
+          <div id="preview-output" class="preview-output"></div>
+          <div id="focus-paths" class="focus-paths" aria-live="polite" hidden></div>
+          <div id="diagnostics" class="diagnostics" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="./assets/client.js"></script>
+  </body>
+</html>

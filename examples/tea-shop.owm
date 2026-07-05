@@ -1,0 +1,29 @@
+title Tea Shop
+size [960, 640]
+style wardley
+
+component Customer [0.95, 0.18] label [12, -14]
+component Cup of Tea [0.79, 0.61] label [-84, 4]
+component Cup [0.73, 0.78]
+component Tea [0.63, 0.81]
+component Hot Water [0.52, 0.80] label [16, -22]
+component Water [0.38, 0.82]
+component Kettle [0.43, 0.35] label [-58, -12] inertia
+
+Customer->Cup of Tea
+Cup of Tea->Cup
+Cup of Tea->Tea
+Cup of Tea->Hot Water
+Hot Water+'$0.10'>Kettle; limited by
+Hot Water->Water
+
+evolve Kettle->Electric Kettle 0.62 (buy)
+pipeline Kettle
+{
+  component Campfire Kettle [0.28, 0.44] label [-114, -42]
+  component Electric Kettle [0.24, 0.66] label [14, -18]
+}
+
+annotation 1 [.30, .40] Standardising power allows kettles to evolve faster
+note Commodity supply makes the lower chain less visible [0.22, 0.82]
+url Kettle [https://onlinewardleymaps.com]

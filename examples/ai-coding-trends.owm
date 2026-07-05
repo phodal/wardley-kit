@@ -1,0 +1,42 @@
+title AI Coding Trends
+size [960, 640]
+style wardley
+
+// Trend assumptions: AI coding adoption is mainstream, while trust, repository
+// context, evaluation, and governance decide whether teams can scale it safely.
+anchor Engineering Teams [0.95, 0.18] label [14, -14]
+component Delivery Confidence [0.84, 0.32] label [16, -18]
+component AI Pair Programming [0.68, 0.58] (market, buy) label [-142, -12]
+component Coding Agents [0.62, 0.38] (ecosystem, build) label [18, -18]
+component Repository Context [0.50, 0.44] (build) label [-142, 2]
+component Evaluation Harness [0.36, 0.50] (build) label [-132, 22]
+component Review Governance [0.30, 0.64] label [18, -18]
+component Model Gateway [0.24, 0.76] (buy) label [18, -18]
+component Foundation Models [0.15, 0.88] (market, outsource) label [-142, 8]
+
+Engineering Teams->Delivery Confidence
+Delivery Confidence->AI Pair Programming
+Delivery Confidence->Coding Agents
+AI Pair Programming->Model Gateway
+Coding Agents->Repository Context
+Coding Agents->Evaluation Harness
+Repository Context->Model Gateway
+Evaluation Harness->Review Governance
+Review Governance->Model Gateway
+Model Gateway->Foundation Models
+
+evolve AI Pair Programming->Coding Agents 0.72 (ecosystem, build) label [28, -16]
+pipeline AI Delivery [0.36, 0.80]
+
+accelerator IDE distribution [0.58, 0.70] label [16, -12]
+accelerator Model capability [0.34, 0.82] label [14, 18]
+deaccelerator Trust gap [0.36, 0.56] label [16, -14]
+deaccelerator Governance bottleneck [0.22, 0.64] label [-130, 16]
+
+pioneers [0.72, 0.28, 0.48, 0.44]
+settlers [0.66, 0.45, 0.34, 0.68]
+townplanners [0.38, 0.66, 0.12, 0.90]
+
+annotation 1 [[0.82, 0.58], [0.68, 0.72]] Pair programming is productising into integrated workflows
+annotation 2 [0.22, 0.34] Trust moves the bottleneck from generation to validation
+annotations [0.92, 0.74]
