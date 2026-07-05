@@ -54,6 +54,14 @@ ${Array.from({ length: 30 }, (_, index) => {
 }).join("\n")}
 ${Array.from({ length: 45 }, (_, index) => `C${index % 30 + 1}->C${(index + 1) % 30 + 1}`).join("\n")}`;
 
+const MARKER_LABEL_MAP = `title Marker Label Placement
+size [960, 640]
+component Context Graph [0.5, 0.5] label [16, -10]
+component Other [0.2, 0.8]
+Context Graph->Other
+accelerator Context capture [0.5, 0.5] label [16, -10]
+deaccelerator Context quality bottleneck [0.5, 0.5] label [16, -10]`;
+
 describe("wardley-kit", () => {
   it("parses and renders a Wardley map", () => {
     const map = parseWardleyMap(BASIC_MAP);
@@ -98,5 +106,12 @@ describe("wardley-kit", () => {
 
     expect(scale).toBeGreaterThan(1);
     expect(layout.width).toBeGreaterThan(map.size.width);
+  });
+
+  it("auto-places marker labels away from component labels", () => {
+    const map = parseWardleyMap(MARKER_LABEL_MAP);
+    const layout = analyzeWardleyLayout(map, { notation: "sketch" });
+
+    expect(layout.diagnostics.some((diagnostic) => diagnostic.code === "S4WARDLEY_LAYOUT_LABEL_OVERLAP")).toBe(false);
   });
 });

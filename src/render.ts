@@ -87,6 +87,21 @@ interface ComponentLabelPlacement {
   readonly lineHeight: number;
 }
 
+interface MarkerLabelPlacement {
+  readonly id: string;
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly textX: number;
+  readonly textY: number;
+  readonly glyphX: number;
+  readonly glyphY: number;
+  readonly fontSize: number;
+  readonly lineHeight: number;
+}
+
 export function renderWardleyMapSvg(map: WardleyMap, options: WardleyRenderOptions = {}): string {
   const { width, height } = resolveWardleyViewport(map, options);
   const notation = resolveNotation(map, options);
@@ -118,9 +133,13 @@ export function renderWardleyMapSvg(map: WardleyMap, options: WardleyRenderOptio
   });
   const labelPlacements = placeComponentLabels(map, width, height, "clean", graph);
   const componentObstacles = componentRouteObstacles(map, width, height, "clean", labelPlacements);
-  const calloutPlacements = placeCleanTextCallouts(map, width, height, colors, componentObstacles, labelAvoidanceSegments(map, width, height, "clean", graph));
+  const labelSegments = labelAvoidanceSegments(map, width, height, "clean", graph);
+  const markerLabelPlacements = placeMarkerLabels(map, width, height, "clean", componentObstacles, labelSegments);
+  const markerObstacles = markerRouteObstacles(map, width, height, markerLabelPlacements);
+  const calloutPlacements = placeCleanTextCallouts(map, width, height, colors, [...componentObstacles, ...markerObstacles], labelSegments);
   const routeObstacles = [
     ...componentObstacles,
+    ...markerObstacles,
     ...calloutRouteObstacles(calloutPlacements)
   ];
 
@@ -139,7 +158,7 @@ export function renderWardleyMapSvg(map: WardleyMap, options: WardleyRenderOptio
   ${map.pipelines.map((pipeline) => renderPipeline(pipeline, byName, map.components, width, height, colors.pipeline)).join("\n  ")}
   ${graph.linkEdges.map((edge) => renderLinkEdge(edge, graph, width, height, colors, routeObstacles)).join("\n  ")}
   ${graph.evolutionEdges.map((edge) => renderEvolutionEdge(edge, graph, byName, width, height, colors.component)).join("\n  ")}
-  ${map.markers.map((marker) => renderMarker(marker, width, height, colors)).join("\n  ")}
+  ${map.markers.map((marker) => renderMarker(marker, width, height, colors, markerLabelPlacements.get(marker.id))).join("\n  ")}
   ${nodes.map(({ component, point }) => renderComponent(component, point, colors, labelPlacements.get(component.id))).join("\n  ")}
   ${renderCleanTextCallouts(calloutPlacements, width, height)}
 </svg>`;
@@ -190,9 +209,13 @@ function renderSketchWardleyMapSvg(map: WardleyMap, width: number, height: numbe
   });
   const labelPlacements = placeComponentLabels(map, width, height, "sketch", graph);
   const componentObstacles = componentRouteObstacles(map, width, height, "sketch", labelPlacements);
-  const calloutPlacements = placeSketchTextCallouts(map, width, height, colors, componentObstacles, labelAvoidanceSegments(map, width, height, "sketch", graph));
+  const labelSegments = labelAvoidanceSegments(map, width, height, "sketch", graph);
+  const markerLabelPlacements = placeMarkerLabels(map, width, height, "sketch", componentObstacles, labelSegments);
+  const markerObstacles = markerRouteObstacles(map, width, height, markerLabelPlacements);
+  const calloutPlacements = placeSketchTextCallouts(map, width, height, colors, [...componentObstacles, ...markerObstacles], labelSegments);
   const routeObstacles = [
     ...componentObstacles,
+    ...markerObstacles,
     ...calloutRouteObstacles(calloutPlacements)
   ];
 
@@ -216,7 +239,7 @@ function renderSketchWardleyMapSvg(map: WardleyMap, width: number, height: numbe
   ${map.pipelines.map((pipeline) => renderSketchPipeline(pipeline, byName, map.components, width, height, colors)).join("\n  ")}
   ${graph.linkEdges.map((edge) => renderSketchLinkEdge(edge, graph, width, height, colors, routeObstacles)).join("\n  ")}
   ${graph.evolutionEdges.map((edge) => renderSketchEvolutionEdge(edge, graph, width, height, colors.component)).join("\n  ")}
-  ${map.markers.map((marker) => renderSketchMarker(marker, width, height, colors)).join("\n  ")}
+  ${map.markers.map((marker) => renderSketchMarker(marker, width, height, colors, markerLabelPlacements.get(marker.id))).join("\n  ")}
   ${nodes.map(({ component, point }) => renderSketchComponent(component, point, colors, labelPlacements.get(component.id))).join("\n  ")}
   ${renderSketchTextCallouts(calloutPlacements, width, height)}
 </svg>`;
@@ -775,6 +798,38 @@ function componentRouteObstacles(
   ];
 }
 
+function markerRouteObstacles(
+  map: WardleyMap,
+  width: number,
+  height: number,
+  markerLabelPlacements: ReadonlyMap<string, MarkerLabelPlacement>
+): readonly RouteObstacle[] {
+  return [
+    ...map.markers.map((marker) => {
+      const point = markerLabelPlacements.get(marker.id) ?? markerLabelPlacement(marker, pointFor(marker.visibility, marker.evolution, width, height), "clean");
+      return {
+        id: `marker-node:${marker.id}`,
+        x: point.glyphX - 14,
+        y: point.glyphY - 14,
+        width: 28,
+        height: 28,
+        weight: 2
+      };
+    }),
+    ...map.markers.flatMap((marker) => {
+      const placement = markerLabelPlacements.get(marker.id);
+      return placement ? [{
+        id: `marker-label:${marker.id}`,
+        x: placement.x,
+        y: placement.y,
+        width: placement.width,
+        height: placement.height,
+        weight: 1
+      }] : [];
+    })
+  ];
+}
+
 function componentNodeObstacleMetrics(
   component: WardleyComponent,
   point: RenderPoint,
@@ -797,6 +852,67 @@ function componentNodeObstacleMetrics(
     width: radius * 2,
     height: radius * 2
   };
+}
+
+function placeMarkerLabels(
+  map: WardleyMap,
+  width: number,
+  height: number,
+  notation: "clean" | "sketch",
+  obstacles: readonly PlacedTextBox[],
+  segments: readonly TextPlacementSegment[]
+): ReadonlyMap<string, MarkerLabelPlacement> {
+  const markerNodeObstacles: readonly PlacedTextBox[] = map.markers.map((marker) => {
+    const point = pointFor(marker.visibility, marker.evolution, width, height);
+    return {
+      id: `marker-node:${marker.id}`,
+      x: point.x - 14,
+      y: point.y - 14,
+      width: 28,
+      height: 28
+    };
+  });
+  const placementBoxes: readonly TextPlacementBox[] = map.markers.map((marker) => {
+    const point = pointFor(marker.visibility, marker.evolution, width, height);
+    const metrics = markerLabelPlacement(marker, point, notation);
+    return {
+      id: marker.id,
+      anchorX: metrics.x,
+      anchorY: metrics.y,
+      width: metrics.width,
+      height: metrics.height
+    };
+  });
+  const bounds = {
+    left: 16,
+    top: Math.max(8, MARGIN.top - 60),
+    right: width - 16,
+    bottom: height - MARGIN.bottom - 8
+  };
+  const placed = new Map(placeTextBoxes(placementBoxes, bounds, 4, {
+    obstacles: [...obstacles, ...markerNodeObstacles],
+    segments,
+    candidateMode: map.components.length + map.markers.length >= 24 ? "expanded" : "local"
+  }).map((box) => [box.id, box]));
+  const componentNodeObstacles = obstacles.filter((obstacle) => obstacle.id.startsWith("component-node:"));
+  return new Map(map.markers.map((marker) => {
+    const point = pointFor(marker.visibility, marker.evolution, width, height);
+    const metrics = markerLabelPlacement(marker, point, notation);
+    const box = placed.get(marker.id);
+    if (!box) {
+      return [marker.id, metrics] as const;
+    }
+    const glyphPoint = markerGlyphPoint(point, box, componentNodeObstacles);
+    return [marker.id, {
+      ...metrics,
+      x: box.x,
+      y: box.y,
+      textX: box.x + (metrics.textX - metrics.x),
+      textY: box.y + (metrics.textY - metrics.y),
+      glyphX: glyphPoint.x,
+      glyphY: glyphPoint.y
+    }] as const;
+  }));
 }
 
 function componentLabelPlacement(component: WardleyComponent, point: RenderPoint, notation: "clean" | "sketch"): ComponentLabelPlacement {
@@ -852,6 +968,63 @@ function componentLabelPlacement(component: WardleyComponent, point: RenderPoint
     fontSize: text.fontSize,
     lineHeight: text.lineHeight
   };
+}
+
+function markerLabelPlacement(marker: WardleyMarker, point: RenderPoint, notation: "clean" | "sketch"): MarkerLabelPlacement {
+  const label = marker.label ?? { x: 14, y: -10 };
+  const text = layoutMarkerLabelText(marker, notation);
+  const textX = point.x + label.x;
+  const textY = point.y + label.y;
+  return {
+    id: marker.id,
+    text: text.text,
+    x: textX - 4,
+    y: textY - text.fontSize,
+    width: Math.max(18, text.width + 8),
+    height: Math.max(18, text.height + 1),
+    textX,
+    textY,
+    glyphX: point.x,
+    glyphY: point.y,
+    fontSize: text.fontSize,
+    lineHeight: text.lineHeight
+  };
+}
+
+function markerGlyphPoint(
+  point: RenderPoint,
+  labelBox: PlacedTextBox,
+  obstacles: readonly PlacedTextBox[]
+): RenderPoint {
+  const markerBox = {
+    x: point.x - 14,
+    y: point.y - 14,
+    width: 28,
+    height: 28
+  };
+  if (!obstacles.some((obstacle) => placedBoxesOverlap(markerBox, obstacle, 0))) {
+    return point;
+  }
+  const centerX = labelBox.x + labelBox.width / 2;
+  const centerY = labelBox.y + labelBox.height / 2;
+  const dx = centerX - point.x;
+  const dy = centerY - point.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.001) {
+    return { x: point.x + 22, y: point.y - 10 };
+  }
+  const offset = 36;
+  return {
+    x: Math.round(point.x + (dx / distance) * offset),
+    y: Math.round(point.y + (dy / distance) * offset)
+  };
+}
+
+function placedBoxesOverlap(a: Pick<PlacedTextBox, "x" | "y" | "width" | "height">, b: Pick<PlacedTextBox, "x" | "y" | "width" | "height">, padding: number): boolean {
+  return a.x - padding < b.x + b.width
+    && a.x + a.width + padding > b.x
+    && a.y - padding < b.y + b.height
+    && a.y + a.height + padding > b.y;
 }
 
 function shouldCenterDetachedAnchorLabel(component: WardleyComponent): boolean {
@@ -1008,31 +1181,45 @@ function renderComponentHitArea(component: WardleyComponent, point: RenderPoint,
   return `<circle class="wardley-component-hit-area" cx="${point.x}" cy="${point.y}" r="${radius}" fill="transparent" stroke="transparent" pointer-events="all" aria-hidden="true" />`;
 }
 
-function renderMarker(marker: WardleyMarker, width: number, height: number, colors: Record<string, string>): string {
+function renderMarker(
+  marker: WardleyMarker,
+  width: number,
+  height: number,
+  colors: Record<string, string>,
+  placement?: MarkerLabelPlacement | undefined
+): string {
   const point = pointFor(marker.visibility, marker.evolution, width, height);
   const color = marker.kind === "accelerator" ? colors.accelerator ?? "#16a34a" : colors.deaccelerator ?? "#dc2626";
-  const label = marker.label ?? { x: 14, y: -10 };
+  const glyphX = placement?.glyphX ?? point.x;
+  const glyphY = placement?.glyphY ?? point.y;
   const glyph = marker.kind === "accelerator"
-    ? `<path d="M${point.x - 7},${point.y + 7} L${point.x},${point.y - 9} L${point.x + 7},${point.y + 7} Z" fill="${color}" />`
-    : `<path d="M${point.x - 8},${point.y - 7} L${point.x + 8},${point.y - 7} L${point.x},${point.y + 9} Z" fill="${color}" />`;
-  const text = layoutMarkerLabelText(marker, "clean");
+    ? `<path d="M${glyphX - 7},${glyphY + 7} L${glyphX},${glyphY - 9} L${glyphX + 7},${glyphY + 7} Z" fill="${color}" />`
+    : `<path d="M${glyphX - 8},${glyphY - 7} L${glyphX + 8},${glyphY - 7} L${glyphX},${glyphY + 9} Z" fill="${color}" />`;
+  const text = placement ?? markerLabelPlacement(marker, point, "clean");
   return `<g class="wardley-marker wardley-marker-${marker.kind}" data-wardley-marker-id="${escapeXml(marker.id)}">
     ${glyph}
-    ${renderCleanMultilineText(text.text, point.x + label.x, point.y + label.y, color, text.fontSize, text.lineHeight, 700)}
+    ${renderCleanMultilineText(text.text, text.textX, text.textY, color, text.fontSize, text.lineHeight, 700)}
   </g>`;
 }
 
-function renderSketchMarker(marker: WardleyMarker, width: number, height: number, colors: Record<string, string>): string {
+function renderSketchMarker(
+  marker: WardleyMarker,
+  width: number,
+  height: number,
+  colors: Record<string, string>,
+  placement?: MarkerLabelPlacement | undefined
+): string {
   const point = pointFor(marker.visibility, marker.evolution, width, height);
   const color = marker.kind === "accelerator" ? colors.accelerator ?? "#18824f" : colors.deaccelerator ?? "#b91c1c";
-  const label = marker.label ?? { x: 14, y: -10 };
+  const glyphX = placement?.glyphX ?? point.x;
+  const glyphY = placement?.glyphY ?? point.y;
   const path = marker.kind === "accelerator"
-    ? `M${point.x - 12},${point.y + 12} C${point.x - 4},${point.y + 2} ${point.x - 1},${point.y - 6} ${point.x},${point.y - 15} M${point.x},${point.y - 15} l-8,8 M${point.x},${point.y - 15} l8,8`
-    : `M${point.x - 12},${point.y - 12} C${point.x - 4},${point.y - 2} ${point.x - 1},${point.y + 6} ${point.x},${point.y + 15} M${point.x},${point.y + 15} l-8,-8 M${point.x},${point.y + 15} l8,-8`;
-  const text = layoutMarkerLabelText(marker, "sketch");
+    ? `M${glyphX - 12},${glyphY + 12} C${glyphX - 4},${glyphY + 2} ${glyphX - 1},${glyphY - 6} ${glyphX},${glyphY - 15} M${glyphX},${glyphY - 15} l-8,8 M${glyphX},${glyphY - 15} l8,8`
+    : `M${glyphX - 12},${glyphY - 12} C${glyphX - 4},${glyphY - 2} ${glyphX - 1},${glyphY + 6} ${glyphX},${glyphY + 15} M${glyphX},${glyphY + 15} l-8,-8 M${glyphX},${glyphY + 15} l8,-8`;
+  const text = placement ?? markerLabelPlacement(marker, point, "sketch");
   return `<g class="wardley-marker wardley-marker-${marker.kind}" data-wardley-marker-id="${escapeXml(marker.id)}">
     <path d="${path}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-    ${renderSketchMultilineText(text.text, point.x + label.x, point.y + label.y, color, text.fontSize, text.lineHeight)}
+    ${renderSketchMultilineText(text.text, text.textX, text.textY, color, text.fontSize, text.lineHeight)}
   </g>`;
 }
 

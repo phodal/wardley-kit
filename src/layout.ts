@@ -106,6 +106,11 @@ interface ComponentLabelSpec {
   readonly point: Point;
 }
 
+interface MarkerLabelSpec {
+  readonly marker: WardleyMarker;
+  readonly point: Point;
+}
+
 export function analyzeWardleyLayout(map: WardleyMap, options: WardleyLayoutOptions = {}): WardleyLayoutReport {
   const { width, height } = resolveWardleyViewport(map, options);
   const notation = resolveNotation(map, options);
@@ -113,6 +118,7 @@ export function analyzeWardleyLayout(map: WardleyMap, options: WardleyLayoutOpti
   const boxes: WardleyLayoutBox[] = [];
   const segments: WardleyLayoutSegment[] = [];
   const componentLabelSpecs: ComponentLabelSpec[] = [];
+  const markerLabelSpecs: MarkerLabelSpec[] = [];
   const graph = buildWardleyGraph(map);
 
   for (const component of map.components) {
@@ -123,8 +129,7 @@ export function analyzeWardleyLayout(map: WardleyMap, options: WardleyLayoutOpti
 
   for (const marker of map.markers) {
     const point = pointFor(marker.visibility, marker.evolution, width, height);
-    boxes.push(markerNodeBox(marker, point));
-    boxes.push(markerLabelBox(marker, point, notation));
+    markerLabelSpecs.push({ marker, point });
   }
 
   for (const edge of graph.linkEdges) {
@@ -194,6 +199,15 @@ export function analyzeWardleyLayout(map: WardleyMap, options: WardleyLayoutOpti
   boxes.push(...(options.autoPlaceLabels === false
     ? componentLabelSpecs.map((spec) => componentLabelBox(spec.component, spec.point, notation))
     : placeComponentLabelBoxes(componentLabelSpecs, width, height, notation, boxes, placementSegments, map.title, graph)));
+  const markerLabelBoxes = options.autoPlaceLabels === false
+    ? markerLabelSpecs.map((spec) => markerLabelBox(spec.marker, spec.point, notation))
+    : placeMarkerLabelBoxes(markerLabelSpecs, width, height, notation, boxes, placementSegments);
+  const markerLabelBoxesById = new Map(markerLabelBoxes.map((box) => [box.id.replace(/^marker-label:/u, ""), box]));
+  boxes.push(...markerLabelSpecs.map((spec) => markerNodeBox(
+    spec.marker,
+    markerGlyphPoint(spec.point, markerLabelBoxesById.get(spec.marker.id), boxes)
+  )));
+  boxes.push(...markerLabelBoxes);
   const calloutBoxes = textCalloutBoxes(callouts, width, height, notation, boxes, placementSegments);
   boxes.push(...calloutBoxes);
   const annotationByBoxId = new Map(map.annotations.map((annotation) => [`annotation-${annotation.id}`, annotation]));
@@ -765,6 +779,104 @@ function markerLabelBox(marker: WardleyMarker, point: Point, notation: "clean" |
   };
 }
 
+function placeMarkerLabelBoxes(
+  specs: readonly MarkerLabelSpec[],
+  svgWidth: number,
+  svgHeight: number,
+  notation: "clean" | "sketch",
+  obstacles: readonly WardleyLayoutBox[],
+  segments: readonly WardleyLayoutSegment[]
+): readonly WardleyLayoutBox[] {
+  const placementObstacles: readonly PlacedTextBox[] = obstacles.map((box) => ({
+    id: box.id,
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height
+  }));
+  const markerNodeObstacles: readonly PlacedTextBox[] = specs.map((spec) => ({
+    id: `marker-node:${spec.marker.id}`,
+    x: spec.point.x - 14,
+    y: spec.point.y - 14,
+    width: 28,
+    height: 28
+  }));
+  const placementSegments: readonly TextPlacementSegment[] = segments.map((segment) => ({
+    id: segment.id,
+    x1: segment.x1,
+    y1: segment.y1,
+    x2: segment.x2,
+    y2: segment.y2
+  }));
+  const placementBoxes: readonly TextPlacementBox[] = specs.map((spec) => {
+    const metrics = markerLabelBox(spec.marker, spec.point, notation);
+    return {
+      id: spec.marker.id,
+      anchorX: metrics.x,
+      anchorY: metrics.y,
+      width: metrics.width,
+      height: metrics.height
+    };
+  });
+  const placements = new Map(placeTextBoxes(placementBoxes, {
+    left: 16,
+    top: Math.max(8, MARGIN.top - 60),
+    right: svgWidth - 16,
+    bottom: svgHeight - MARGIN.bottom - 8
+  }, 4, {
+    obstacles: [...placementObstacles, ...markerNodeObstacles],
+    segments: placementSegments,
+    candidateMode: specs.length + obstacles.length >= 36 ? "expanded" : "local"
+  }).map((box) => [box.id, box]));
+  return specs.map((spec) => {
+    const metrics = markerLabelBox(spec.marker, spec.point, notation);
+    const box = placements.get(spec.marker.id);
+    if (!box) {
+      return metrics;
+    }
+    return {
+      ...metrics,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height
+    };
+  });
+}
+
+function markerGlyphPoint(
+  point: Point,
+  labelBox: WardleyLayoutBox | undefined,
+  obstacles: readonly WardleyLayoutBox[]
+): Point {
+  if (!labelBox) {
+    return point;
+  }
+  const markerBox = {
+    x: point.x - 14,
+    y: point.y - 14,
+    width: 28,
+    height: 28
+  };
+  const componentNodeObstacles = obstacles.filter((box) => box.kind === "component-node");
+  if (!componentNodeObstacles.some((obstacle) => boxesOverlap(markerBox, obstacle, 0))) {
+    return point;
+  }
+  const centerX = labelBox.x + labelBox.width / 2;
+  const centerY = labelBox.y + labelBox.height / 2;
+  const dx = centerX - point.x;
+  const dy = centerY - point.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.001) {
+    return { x: point.x + 22, y: point.y - 10 };
+  }
+  const offset = 36;
+  return {
+    x: Math.round(point.x + (dx / distance) * offset),
+    y: Math.round(point.y + (dy / distance) * offset)
+  };
+}
+
 function textCalloutBoxes(
   callouts: readonly TextCalloutSpec[],
   svgWidth: number,
@@ -938,7 +1050,11 @@ function shortenSegment(a: Point, b: Point, amount: number): { readonly a: Point
   };
 }
 
-function boxesOverlap(a: WardleyLayoutBox, b: WardleyLayoutBox, padding: number): boolean {
+function boxesOverlap(
+  a: Pick<WardleyLayoutBox, "x" | "y" | "width" | "height">,
+  b: Pick<WardleyLayoutBox, "x" | "y" | "width" | "height">,
+  padding: number
+): boolean {
   const ax = a.x - padding;
   const ay = a.y - padding;
   const bx = b.x - padding;
